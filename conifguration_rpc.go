@@ -9,6 +9,11 @@ import (
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
+var (
+	ReadFile = getFileContent
+	DbUpdate = saveDataToDb
+)
+
 func configurationInfoRpc(ctx context.Context, logger runtime.Logger, db *sql.DB, module runtime.NakamaModule, payload string) (string, error) {
 	logger.Debug("Configuration content RPC called")
 
@@ -19,7 +24,7 @@ func configurationInfoRpc(ctx context.Context, logger runtime.Logger, db *sql.DB
 	}
 
 	// fetch file content
-	fileContent, fileFetchError := getFileContent(request.ConfigurationType, request.Version, logger)
+	fileContent, fileFetchError := ReadFile(request.ConfigurationType, request.Version, logger)
 	if fileFetchError != nil {
 		logger.Error("Error fetching file: %v", err)
 		// return invalid argument code
@@ -51,7 +56,7 @@ func configurationInfoRpc(ctx context.Context, logger runtime.Logger, db *sql.DB
 	}
 
 	// save data to DB
-	dbSaveError := saveDataToDb(ctx, logger, out, err, module)
+	dbSaveError := DbUpdate(ctx, logger, out, err, module)
 	if dbSaveError != nil {
 		return "", dbSaveError
 	}

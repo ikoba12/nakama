@@ -6,8 +6,7 @@ import (
 )
 
 func TestGetFileContent(t *testing.T) {
-	oldOsReadFile := osReadFile
-	defer func() { osReadFile = oldOsReadFile }()
+
 	osReadFile = func(name string) ([]byte, error) {
 		if name == "/nakama/data/configs/test/1.json" {
 			return []byte("test"), nil
