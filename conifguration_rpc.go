@@ -9,31 +9,24 @@ import (
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
-type ConfigurationInfoResponse struct {
-	ConfigurationType string  `json:"type"`
-	Version           string  `json:"version"`
-	Hash              *string `json:"hash"`
-	Content           *string `json:"content"`
-}
-
-type ConfigurationInfoRequest struct {
-	ConfigurationType string  `json:"type"`
-	Version           string  `json:"version"`
-	Hash              *string `json:"hash"`
-}
-
 func configurationInfoRpc(ctx context.Context, logger runtime.Logger, db *sql.DB, module runtime.NakamaModule, payload string) (string, error) {
 	logger.Debug("Configuration content RPC called")
+
+	// parse request
 	request, err := parseRequest(payload, logger)
 	if err != nil {
 		return "", err
 	}
 
+	// fetch file content
 	fileContent, fileFetchError := getFileContent(request.ConfigurationType, request.Version, logger)
 	if fileFetchError != nil {
 		logger.Error("Error fetching file: %v", err)
-		return "", runtime.NewError("Unable to find the data for given request", 02)
+		// return invalid argument code
+		return "", runtime.NewError("Unable to find the data for given request", 3)
 	}
+
+	// build response
 	contentString := string(fileContent)
 	response := &ConfigurationInfoResponse{
 		ConfigurationType: request.ConfigurationType,
@@ -41,18 +34,26 @@ func configurationInfoRpc(ctx context.Context, logger runtime.Logger, db *sql.DB
 		Hash:              request.Hash,
 		Content:           &contentString,
 	}
-	// Calculate file hash
-	calculatedHash := calculateHash(fileContent)
 
+	// check hashes
+	calculatedHash := calculateHash(fileContent)
 	if request.Hash == nil || calculatedHash != *request.Hash {
 		logger.Debug("Calculated hash not equal to request hash. Calculated hash : %v ", calculatedHash)
 		response.Content = nil
 	}
 
+	// marshal the response
 	out, err := json.Marshal(response)
 	if err != nil {
 		logger.Error("Error marshalling response type to JSON: %v", err)
+		// return internal error
 		return "", runtime.NewError("Error while fetching content", 13)
+	}
+
+	// save data to DB
+	dbSaveError := saveDataToDb(ctx, logger, out, err, module)
+	if dbSaveError != nil {
+		return "", dbSaveError
 	}
 
 	return string(out), nil
@@ -66,7 +67,8 @@ func parseRequest(payload string, logger runtime.Logger) (ConfigurationInfoReque
 	err := json.Unmarshal([]byte(payload), &request)
 	if err != nil {
 		logger.Error("Error unmarshalling request payload: %v", err)
-		return ConfigurationInfoRequest{}, runtime.NewError("Invalid request", 01)
+		// return invalid argument code
+		return ConfigurationInfoRequest{}, runtime.NewError("Invalid request", 3)
 	}
 	return request, nil
 }
