@@ -6,13 +6,14 @@ import (
 	"os"
 )
 
-func getFileContent(configType string, version string, logger runtime.Logger, err error) ([]byte, error) {
+// Define as a variable for testing purposes
+var osReadFile = os.ReadFile
+
+func getFileContent(configType string, version string, logger runtime.Logger) ([]byte, *runtime.Error) {
 	// Construct file path
 	filePath := fmt.Sprintf("/nakama/data/configs/%s/%s.json", configType, version)
-	logger.Debug("file path", filePath)
-	logger.Debug("curDir", os.TempDir())
 	// Read file from disk
-	fileContent, err := os.ReadFile(filePath)
+	fileContent, err := osReadFile(filePath)
 
 	if err != nil {
 		if os.IsNotExist(err) {

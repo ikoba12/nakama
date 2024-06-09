@@ -7,11 +7,9 @@ WORKDIR /backend
 
 COPY go.mod .
 COPY *.go .
-COPY configs/ ./configs/
 COPY vendor/ vendor/
-RUN ls -la /backend
 
-RUN go build --trimpath --mod=vendor --buildmode=plugin -o ./backend.so
+RUN go test -v && go build --trimpath --mod=vendor --buildmode=plugin -o ./backend.so
 
 FROM registry.heroiclabs.com/heroiclabs/nakama:3.21.1
 

@@ -24,17 +24,12 @@ type ConfigurationInfoRequest struct {
 
 func configurationInfoRpc(ctx context.Context, logger runtime.Logger, db *sql.DB, module runtime.NakamaModule, payload string) (string, error) {
 	logger.Debug("Configuration content RPC called")
-	var request = ConfigurationInfoRequest{
-		ConfigurationType: "core",
-		Version:           "1.0.0",
-	}
-	err := json.Unmarshal([]byte(payload), &request)
+	request, err := parseRequest(payload, logger)
 	if err != nil {
-		logger.Error("Error unmarshalling request payload: %v", err)
-		return "", runtime.NewError("Invalid request", 01)
+		return "", err
 	}
 
-	fileContent, fileFetchError := getFileContent(request.ConfigurationType, request.Version, logger, err)
+	fileContent, fileFetchError := getFileContent(request.ConfigurationType, request.Version, logger)
 	if fileFetchError != nil {
 		logger.Error("Error fetching file: %v", err)
 		return "", runtime.NewError("Unable to find the data for given request", 02)
@@ -47,10 +42,9 @@ func configurationInfoRpc(ctx context.Context, logger runtime.Logger, db *sql.DB
 		Content:           &contentString,
 	}
 	// Calculate file hash
-	hash := sha256.Sum256(fileContent)
-	calculatedHash := hex.EncodeToString(hash[:])
+	calculatedHash := calculateHash(fileContent)
 
-	if request.Hash != nil && calculatedHash != *request.Hash {
+	if request.Hash == nil || calculatedHash != *request.Hash {
 		logger.Debug("Calculated hash not equal to request hash. Calculated hash : %v ", calculatedHash)
 		response.Content = nil
 	}
@@ -62,4 +56,23 @@ func configurationInfoRpc(ctx context.Context, logger runtime.Logger, db *sql.DB
 	}
 
 	return string(out), nil
+}
+
+func parseRequest(payload string, logger runtime.Logger) (ConfigurationInfoRequest, error) {
+	var request = ConfigurationInfoRequest{
+		ConfigurationType: "core",
+		Version:           "1.0.0",
+	}
+	err := json.Unmarshal([]byte(payload), &request)
+	if err != nil {
+		logger.Error("Error unmarshalling request payload: %v", err)
+		return ConfigurationInfoRequest{}, runtime.NewError("Invalid request", 01)
+	}
+	return request, nil
+}
+
+func calculateHash(input []byte) string {
+	hash := sha256.Sum256(input)
+	calculatedHash := hex.EncodeToString(hash[:])
+	return calculatedHash
 }
