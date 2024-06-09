@@ -54,14 +54,27 @@ func configurationInfoRpc(ctx context.Context, logger runtime.Logger, db *sql.DB
 		// return internal error
 		return "", runtime.NewError("Error while fetching content", 13)
 	}
-
+	userID, userIdError := getUserId(ctx, logger)
+	if userIdError != nil {
+		return "", userIdError
+	}
 	// save data to DB
-	dbSaveError := DbUpdate(ctx, logger, out, err, module)
+	dbSaveError := DbUpdate(ctx, logger, out, module, userID)
 	if dbSaveError != nil {
-		return "", dbSaveError
+		return "", runtime.NewError("Error while fetching content", 13)
 	}
 
 	return string(out), nil
+}
+
+func getUserId(ctx context.Context, logger runtime.Logger) (string, error) {
+	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+	if !ok || userID == "" {
+		logger.Error("No user ID found in context")
+		// return unauthenticated error
+		return "", runtime.NewError("No user ID in context", 16)
+	}
+	return userID, nil
 }
 
 func parseRequest(payload string, logger runtime.Logger) (ConfigurationInfoRequest, error) {
@@ -73,7 +86,7 @@ func parseRequest(payload string, logger runtime.Logger) (ConfigurationInfoReque
 	if err != nil {
 		logger.Error("Error unmarshalling request payload: %v", err)
 		// return invalid argument code
-		return ConfigurationInfoRequest{}, runtime.NewError("Invalid request", 3)
+		return ConfigurationInfoRequest{}, runtime.NewError("Invalid request payload", 3)
 	}
 	return request, nil
 }
