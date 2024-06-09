@@ -25,8 +25,9 @@ Heroiclabs official website provided a framework for testing Typescript server r
 
 I tried to decouple the project as much as possible to make the code more readable and easily maintainable.
 
-Given more time I would try out the framework for testing the RPC function end to end, try to implement a better error handling mechanism to have more detailed error messages for the client. 
-Also, would take some time to figure out what are the best practices for go and maybe arrange the code better.  
+Given more time I would try out the framework for testing the RPC function end to end, try to implement a better error handling mechanism to have more detailed error messages for the client.
+Figure out a way to handle the config files a bit better, right now have the path to Nakama's default storage directory hardcoded in the project  
+Also, would take some time to figure out what are the best practices for go and maybe arrange the code better.
 A bit more context would allow to figure out what the data should be used for and how it should be stored properly in the storage for optimal performance in the future.
 
 
